@@ -1,0 +1,55 @@
+{% extends "dankswank/base.html" %}
+{% load staticfiles %}
+
+{% block header %}
+<script type="text/javascript" src="{% static "bootstrap-table/dist/bootstrap-table-all.min.js" %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static "bootstrap-table/dist/bootstrap-table.min.css" %}">
+<link rel="stylesheet" type="text/css" href="{% static "movies/style.css" %}">
+<script type="text/javascript" src="{% static "movies/main.js" %}"></script>
+{% endblock %}
+
+{% block content %}
+<table id="table"
+       class="cursor-default"
+       data-toggle="table"
+       data-minimum-count-columns="2"
+       data-url="{% url "movie-list" %}"
+       data-row-style="rowStyle"
+       data-sort-name="college_release_date"
+       data-sort-order="asc">
+    <thead>
+        <tr>
+        {% for key, attr in movie_attributes %}
+            {% if key == 'college_release_date' or key == 'home_release_date' %}
+            <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter">
+            {% elif key == 'gross' %}
+            <th data-field="{{ key }}" data-sortable="true" data-sorter="grossSorter">
+            {% elif key == 'title' %}
+            <th data-field="{{ key }}" data-sortable="true" data-formatter="titleColumnFormatter">
+            {% else %}
+            <th data-field="{{ key }}" data-sortable="true">
+            {% endif %}
+                {{ attr }}
+            </th>
+        {% endfor %}
+        </tr>
+    </thead>
+</table>
+<!-- <table id="table"
+       data-toolbar="#toolbar"
+       data-search="true"
+       data-show-refresh="true"
+       data-show-toggle="true"
+       data-show-columns="true"
+       data-detail-view="true"
+       data-detail-formatter="detailFormatter"
+       data-minimum-count-columns="2"
+       data-show-pagination-switch="true"
+       data-pagination="true"
+       data-page-list="[10, 25, 50, 100, ALL]"
+       data-show-footer="true"
+       data-side-pagination="server"
+       data-url="{% url "movie-list" %}"
+       data-response-handler="responseHandler">
+</table> -->
+{% endblock %}

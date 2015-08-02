@@ -1,0 +1,23 @@
+{
+  "name": "dankswank",
+  "version": "0.0.0",
+  "authors": [
+    "JeffreyTerry <jterry94@gmail.com>"
+  ],
+  "description": "A script that parses new releases from Swank and IMDB in order to make film scheduling easier.",
+  "license": "MIT",
+  "homepage": "https://github.com/JeffreyTerry/college-auditorium-film-finder",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.3.5",
+    "jquery": "~2.1.4",
+    "moment": "~2.10.6",
+    "bootstrap-sortable": "~1.11.2"
+  }
+}

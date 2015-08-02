@@ -1,0 +1,23 @@
+{% load staticfiles %}
+
+<html>
+    <head>
+        <link href="{% static "bootstrap/dist/css/bootstrap.min.css" %}" rel="stylesheet" media="screen">
+        <link href="{% static "bootstrap-sortable/Contents/bootstrap-sortable.css" %}" rel="stylesheet" media="screen">
+        <script src="{% static "jquery/dist/jquery.min.js" %}"></script>
+        <script src="{% static "bootstrap/dist/js/bootstrap.min.js" %}"></script>
+        <script src="{% static "moment/min/moment.min.js" %}"></script>
+        <script src="{% static "bootstrap-sortable/Scripts/bootstrap-sortable.js" %}"></script>
+        {% block header %}
+        {% endblock %}
+    </head>
+
+    <body style="padding-top: 20px; padding-bottom: 20px;">
+        <div class="row-fluid">
+            <div class="col-xs-12">
+            {% block content %}
+            {% endblock %}
+            </div>
+        </div>
+    </body>
+</html>
