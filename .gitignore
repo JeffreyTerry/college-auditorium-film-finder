@@ -56,4 +56,7 @@ db.sqlite3
 .DS_STORE
 
 # Library packages
-dankswank/static
+dankswank/bower_components
+
+# Virtual environment
+dsenv
