@@ -57,3 +57,6 @@ db.sqlite3
 
 # Library packages
 static
+
+# Virtual environment
+dsenv
