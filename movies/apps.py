@@ -31,21 +31,17 @@ class MoviesAppConfig(AppConfig):
         content = requests.get('http://colleges.swankmp.com/new-releases').text
 
         try:
-            film_listing_controls_index = content.index('filmListingControls')
+            first_film_listing_controls_index = content.index('filmListingControls')
+            new_releases_list = self.get_film_list_from_script(content, first_film_listing_controls_index)
 
-            items_keyword_index = content.index('Items', film_listing_controls_index)
-            headers_keyword_index = content.index('Headers', film_listing_controls_index)
+            second_film_listing_controls_index = content.index('filmListingControls', first_film_listing_controls_index + 1)
+            recent_releases_list = self.get_film_list_from_script(content, second_film_listing_controls_index)
 
-            json_start_index = content.index('[', items_keyword_index)
-            json_end_index = content.rindex(']', 0, headers_keyword_index) + 1
-
-            film_list_content = content[json_start_index:json_end_index]
-            film_list = json.loads(film_list_content)
-
+            all_releases_list = new_releases_list + recent_releases_list
             Movie = self.get_model('Movie')
             movie_list = []
             # i = 0
-            for film_data in film_list:
+            for film_data in all_releases_list:
                 # i += 1
                 # if i > 200:
                 #     break
@@ -62,13 +58,12 @@ class MoviesAppConfig(AppConfig):
                 else:
                     print 'Finding movie data for "' + film_data['Title'] + '"'
 
-                # if not "Insurgent" in film_data['Title']:
-                #     continue
-
                 # Build the movie object
-                if not film_data['ReleaseDatePreRelease']:
+                if not 'ReleaseDatePreRelease' in film_data or\
+                        not film_data['ReleaseDatePreRelease']:
                     film_data['ReleaseDatePreRelease'] = ''
-                if not film_data['InHomeDate']:
+                if not 'InHomeDate' in film_data or\
+                        not film_data['InHomeDate']:
                     film_data['InHomeDate'] = ''
                 movie = Movie(
                     title=film_data['Title'],
@@ -86,17 +81,32 @@ class MoviesAppConfig(AppConfig):
 
         return movie_list
 
+    def get_film_list_from_script(self, content, film_listing_controls_index):
+        sliced_content = content[film_listing_controls_index:]
+
+        items_keyword_index = sliced_content.index('Items')
+        headers_keyword_index = sliced_content.index('Headers')
+
+        json_start_index = sliced_content.index('[', items_keyword_index)
+        json_end_index = sliced_content.rindex(']', 0, headers_keyword_index) + 1
+
+        film_list_content = sliced_content[json_start_index:json_end_index]
+        return json.loads(film_list_content)
+
     def add_imdb_data_to_movie(self, movie):
         # Grab data from IMDb
         imdb_datas = MoviesAppConfig.ia.search_movie(movie.title, results=5)
 
         imdb_data = None
         for data in imdb_datas:
-            if not 'episode title' in data.keys()\
-                    and not '(vg)' in data['long imdb canonical title'].lower()\
-                    and data['year'] > datetime.now().year - 2:
+            try:
+                if not 'episode title' in data.keys()\
+                        and not '(vg)' in data['long imdb canonical title'].lower()\
+                        and data['year'] > datetime.now().year - 2:
+                    imdb_data = data
+                    break
+            except KeyError:
                 imdb_data = data
-                break
 
         if not imdb_data:
             print 'Error: Could not find IMDb data for movie: %s' % movie
@@ -126,7 +136,9 @@ class MoviesAppConfig(AppConfig):
         movie.imdb_url = MoviesAppConfig.ia.get_imdbURL(imdb_data)
 
     def format_title(self, title):
-        return re.sub(r'\s*\(Subtitled\)', '', title, flags=re.I).title()
+        result = re.sub(r'\s*\(Subtitled\)', '', title, flags=re.I)
+        result = re.sub(r'\s*\(Domestic\)', '', result, flags=re.I)
+        return result.title()
 
     def add_imdb_attr_to_movie(self, movie, movie_attr, imdb_data, imdb_attr):
         try:
