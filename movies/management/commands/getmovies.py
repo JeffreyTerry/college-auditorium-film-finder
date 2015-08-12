@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 from django.core.management.base import BaseCommand
-from imdb import IMDb
 from datetime import datetime
+# from lxml import etree
+# from io import StringIO
+# from HTMLTableParser import HTMLTableParser
+from bs4 import BeautifulSoup, Tag
+from imdb import IMDb
 from movies.models import Movie
-import threading
+from arrow.parser import ParserError
+import arrow
 import requests
 import json
 import re
-import os
 
 
 class Command(BaseCommand):
@@ -15,17 +19,71 @@ class Command(BaseCommand):
     ia = IMDb()
 
     def handle(self, *args, **options):
-        # if not 'POPULATING_MOVIE_DATABASE' in os.environ:
-            # os.environ['POPULATING_MOVIE_DATABASE'] = 'True'
         self.populate_movie_database()
-            # thread = threading.Thread(target=self.populate_movie_database)
-            # thread.start()
 
     def populate_movie_database(self):
+        movies = self.parse_movies_from_criterion()
+        self.stdout.write('Done parsing data from Criterion')
         movies = self.parse_movies_from_swank()
         self.stdout.write('Done parsing data from Swank')
-        # os.environ['POPULATING_MOVIE_DATABASE'] = ''
-        # del os.environ['POPULATING_MOVIE_DATABASE']
+
+    def parse_movies_from_criterion(self):
+        content = requests.get('http://www.criterionpicusa.com/release-schedule').text
+
+        try:
+            # Isolate the <table> html that we are going to parse
+            table_header_row_index = content.index('tableJX7headerRow')
+            table_element_start_index = content.rindex('<table', 0, table_header_row_index)
+            table_element_end_index = content.index('</table', table_header_row_index)
+            table_element_end_index = content.index('>', table_element_end_index) + 1
+            table_content = content[table_element_start_index:table_element_end_index]
+            # print table_content
+
+            # Pull the table into BeautifulSoup
+            soup = BeautifulSoup(table_content, 'html.parser')
+            data_rows = soup.find_all('tr')
+
+            # Parse the headers from the soup
+            headers = [self.get_content_from_tag(col) for col in data_rows[0] if isinstance(col, Tag)]
+
+            # Parse the data from the soup
+            movie_list = []
+            for row in data_rows[1:]:
+                # Parse data from the current row
+                values = [self.get_content_from_tag(col) for col in row if isinstance(col, Tag)]
+
+                # Reformat Criterion's date data
+                for i, header in enumerate(headers):
+                    if 'Date' in header:
+                        try:
+                            date = arrow.get(values[i], 'YYYY-MM-DD')
+                            values[i] = date.format('M/D/YYYY')
+                        except ParserError:
+                            values[i] = ''
+
+                # Build the movie object
+                dirty_movie = dict(zip(headers, values))
+                movie = Movie(
+                    title=dirty_movie['Title'],
+                    college_release_date=dirty_movie['Criterion Date'],
+                    home_release_date=dirty_movie['Home Video Release Date'])
+
+                if Movie.objects.filter(title=dirty_movie['Title']):
+                    continue
+                else:
+                    self.stdout.write('Finding movie data for "' + dirty_movie['Title'] + '"')
+
+                # Add IMDb data to the movie
+                if self.add_imdb_data_to_movie(movie):
+                    self.save_movie_to_database(movie)
+
+                # Add the movie to the result list
+                movie_list.append(movie)
+        except ValueError as e:
+            self.stdout.write('Error: Could not find film list on Criterion due to error "' + str(e) + '"')
+            raise
+
+        return movie_list
 
     def parse_movies_from_swank(self):
         content = requests.get('http://colleges.swankmp.com/new-releases').text
@@ -34,12 +92,13 @@ class Command(BaseCommand):
             first_film_listing_controls_index = content.index('filmListingControls')
             new_releases_list = self.get_film_list_from_script(content, first_film_listing_controls_index)
 
-            second_film_listing_controls_index = content.index('filmListingControls', first_film_listing_controls_index + 1)
-            recent_releases_list = self.get_film_list_from_script(content, second_film_listing_controls_index)
+            # Uncomment this and iterate over the "all_releases_list" in order to parse recent releases from Swank.
+            # second_film_listing_controls_index = content.index('filmListingControls', first_film_listing_controls_index + 1)
+            # recent_releases_list = self.get_film_list_from_script(content, second_film_listing_controls_index)
+            # all_releases_list = new_releases_list + recent_releases_list
 
-            all_releases_list = new_releases_list + recent_releases_list
             movie_list = []
-            for film_data in all_releases_list:
+            for film_data in new_releases_list:
                 # Replace all whitespace in all data with single spaces
                 for key, attr in film_data.iteritems():
                     if isinstance(film_data[key], unicode):
@@ -75,6 +134,13 @@ class Command(BaseCommand):
             raise
 
         return movie_list
+
+    def get_content_from_tag(self, tag):
+        while tag.find(True, class_='field'):
+            tag = tag.find(True, class_='field')
+        while tag.find('a'):
+            tag = tag.find('a')
+        return tag.contents[0]
 
     def get_film_list_from_script(self, content, film_listing_controls_index):
         sliced_content = content[film_listing_controls_index:]
