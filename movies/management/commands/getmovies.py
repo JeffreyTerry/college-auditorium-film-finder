@@ -21,13 +21,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.populate_movie_database()
 
-    def populate_movie_database(self):
-        movies = self.parse_movies_from_criterion()
+    def populate_movie_database(self, overwrite_existing_movies=False):
+        movies = self.parse_movies_from_criterion(overwrite_existing_movies)
         self.stdout.write('Done parsing data from Criterion')
-        movies = self.parse_movies_from_swank()
+        movies = self.parse_movies_from_swank(overwrite_existing_movies)
         self.stdout.write('Done parsing data from Swank')
 
-    def parse_movies_from_criterion(self):
+    def parse_movies_from_criterion(self, overwrite_existing_movies):
         content = requests.get('http://www.criterionpicusa.com/release-schedule').text
 
         try:
@@ -68,7 +68,7 @@ class Command(BaseCommand):
                     college_release_date=dirty_movie['Criterion Date'],
                     home_release_date=dirty_movie['Home Video Release Date'])
 
-                if Movie.objects.filter(title=dirty_movie['Title']):
+                if not overwrite_existing_movies and Movie.objects.filter(title=dirty_movie['Title']):
                     continue
                 else:
                     self.stdout.write('Finding movie data for "' + dirty_movie['Title'] + '"')
@@ -85,7 +85,7 @@ class Command(BaseCommand):
 
         return movie_list
 
-    def parse_movies_from_swank(self):
+    def parse_movies_from_swank(self, overwrite_existing_movies):
         content = requests.get('http://colleges.swankmp.com/new-releases').text
 
         try:
@@ -106,7 +106,7 @@ class Command(BaseCommand):
 
                 film_data['Title'] = self.format_title(film_data['Title'])
 
-                if Movie.objects.filter(title=film_data['Title']):
+                if not overwrite_existing_movies and Movie.objects.filter(title=film_data['Title']):
                     continue
                 else:
                     self.stdout.write('Finding movie data for "' + film_data['Title'] + '"')
