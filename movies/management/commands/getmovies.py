@@ -18,8 +18,19 @@ class Command(BaseCommand):
     help = 'Grabs movies from swank, adds IMDb data to them, then saves them to the local database'
     ia = IMDb()
 
+    def add_arguments(self, parser):
+        parser.add_argument('--force',
+            action='store_true',
+            dest='force',
+            default=False,
+            help='Force the script to override existing movie data')
+
     def handle(self, *args, **options):
-        self.populate_movie_database()
+        print options
+        if options['force']:
+            self.populate_movie_database(True)
+        else:
+            self.populate_movie_database()
 
     def populate_movie_database(self, overwrite_existing_movies=False):
         movies = self.parse_movies_from_criterion(overwrite_existing_movies)
@@ -222,5 +233,6 @@ class Command(BaseCommand):
                 setattr(movie, movie_attr, '')
 
     def save_movie_to_database(self, movie):
-        if not Movie.objects.filter(title=movie.title):
-            movie.save()
+        if Movie.objects.filter(title=movie.title):
+            Movie.objects.filter(title=movie.title)[0].delete()
+        movie.save()
