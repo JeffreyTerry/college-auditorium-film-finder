@@ -12,6 +12,7 @@ import arrow
 import requests
 import json
 import re
+import sys
 
 
 class Command(BaseCommand):
@@ -26,17 +27,16 @@ class Command(BaseCommand):
             help='Force the script to override existing movie data')
 
     def handle(self, *args, **options):
-        print options
         if options['force']:
             self.populate_movie_database(True)
         else:
             self.populate_movie_database()
 
     def populate_movie_database(self, overwrite_existing_movies=False):
-        movies = self.parse_movies_from_criterion(overwrite_existing_movies)
-        self.stdout.write('Done parsing data from Criterion')
         movies = self.parse_movies_from_swank(overwrite_existing_movies)
         self.stdout.write('Done parsing data from Swank')
+        movies = self.parse_movies_from_criterion(overwrite_existing_movies)
+        self.stdout.write('Done parsing data from Criterion')
 
     def parse_movies_from_criterion(self, overwrite_existing_movies):
         content = requests.get('http://www.criterionpicusa.com/release-schedule').text
@@ -60,39 +60,48 @@ class Command(BaseCommand):
             # Parse the data from the soup
             movie_list = []
             for row in data_rows[1:]:
-                # Parse data from the current row
-                values = [self.get_content_from_tag(col) for col in row if isinstance(col, Tag)]
+                try:
+                    # Parse data from the current row
+                    values = [self.get_content_from_tag(col) for col in row if isinstance(col, Tag)]
 
-                # Reformat Criterion's date data
-                for i, header in enumerate(headers):
-                    if 'Date' in header:
-                        try:
-                            date = arrow.get(values[i], 'YYYY-MM-DD')
-                            values[i] = date.format('M/D/YYYY')
-                        except ParserError:
-                            values[i] = ''
+                    release_date_confirmed = False
+                    # Reformat Criterion's date data
+                    for i, header in enumerate(headers):
+                        if 'Criterion Date' in header:
+                            # Remember whether or not the movie's release date was confirmed
+                            release_date_confirmed = 'CONFIRMED' in values[i]
+                        if 'Date' in header:
+                            try:
+                                date = arrow.get(values[i], 'YYYY-MM-DD')
+                                values[i] = date.format('M/D/YYYY')
+                            except ParserError:
+                                values[i] = ''
 
-                # Build the movie object
-                dirty_movie = dict(zip(headers, values))
-                movie = Movie(
-                    title=dirty_movie['Title'],
-                    college_release_date=dirty_movie['Criterion Date'],
-                    home_release_date=dirty_movie['Home Video Release Date'])
+                    # Build the movie object
+                    dirty_movie = dict(zip(headers, values))
+                    movie = Movie(
+                        title=dirty_movie['Title'],
+                        college_release_date=dirty_movie['Criterion Date'],
+                        college_release_date_confirmed=release_date_confirmed,
+                        home_release_date=dirty_movie['Home Video Release Date'])
 
-                if not overwrite_existing_movies and Movie.objects.filter(title=dirty_movie['Title']):
-                    continue
-                else:
-                    self.stdout.write('Finding movie data for "' + dirty_movie['Title'] + '"')
+                    if not overwrite_existing_movies and Movie.objects.filter(title=dirty_movie['Title']):
+                        continue
+                    else:
+                        self.stdout.write('Finding movie data for "' + dirty_movie['Title'] + '"')
 
-                # Add IMDb data to the movie
-                if self.add_imdb_data_to_movie(movie):
-                    self.save_movie_to_database(movie)
+                        # Add IMDb data to the movie
+                        if self.add_imdb_data_to_movie(movie):
+                            self.save_movie_to_database(movie)
 
-                # Add the movie to the result list
-                movie_list.append(movie)
-        except ValueError as e:
+                        # Add the movie to the result list
+                        movie_list.append(movie)
+                except:
+                    e = sys.exc_info()[0]
+                    self.stdout.write('Error parsing data for Criterion movie. Error "' + str(e) + '"')
+        except:
+            e = sys.exc_info()[0]
             self.stdout.write('Error: Could not find film list on Criterion due to error "' + str(e) + '"')
-            raise
 
         return movie_list
 
@@ -103,46 +112,51 @@ class Command(BaseCommand):
             first_film_listing_controls_index = content.index('filmListingControls')
             new_releases_list = self.get_film_list_from_script(content, first_film_listing_controls_index)
 
-            # Uncomment this and iterate over the "all_releases_list" in order to parse recent releases from Swank.
+            # Uncomment this in order to iterate over the "all_releases_list" in order to parse recent releases from Swank.
             # second_film_listing_controls_index = content.index('filmListingControls', first_film_listing_controls_index + 1)
             # recent_releases_list = self.get_film_list_from_script(content, second_film_listing_controls_index)
             # all_releases_list = new_releases_list + recent_releases_list
 
             movie_list = []
             for film_data in new_releases_list:
-                # Replace all whitespace in all data with single spaces
-                for key, attr in film_data.iteritems():
-                    if isinstance(film_data[key], unicode):
-                        film_data[key] = re.sub(r'\s+', ' ', film_data[key]).strip()
+                try:
+                    # Replace all whitespace in all data with single spaces
+                    for key, attr in film_data.iteritems():
+                        if isinstance(film_data[key], unicode):
+                            film_data[key] = re.sub(r'\s+', ' ', film_data[key]).strip()
 
-                film_data['Title'] = self.format_title(film_data['Title'])
+                    film_data['Title'] = self.format_title(film_data['Title'])
 
-                if not overwrite_existing_movies and Movie.objects.filter(title=film_data['Title']):
-                    continue
-                else:
-                    self.stdout.write('Finding movie data for "' + film_data['Title'] + '"')
+                    if not overwrite_existing_movies and Movie.objects.filter(title=film_data['Title']):
+                        continue
+                    else:
+                        self.stdout.write('Finding movie data for "' + film_data['Title'] + '"')
 
-                # Build the movie object
-                if not 'ReleaseDatePreRelease' in film_data or\
-                        not film_data['ReleaseDatePreRelease']:
-                    film_data['ReleaseDatePreRelease'] = ''
-                if not 'InHomeDate' in film_data or\
-                        not film_data['InHomeDate']:
-                    film_data['InHomeDate'] = ''
-                movie = Movie(
-                    title=film_data['Title'],
-                    college_release_date=film_data['ReleaseDatePreRelease'],
-                    home_release_date=film_data['InHomeDate'])
+                        # Build the movie object
+                        if not 'ReleaseDatePreRelease' in film_data or\
+                                not film_data['ReleaseDatePreRelease']:
+                            film_data['ReleaseDatePreRelease'] = ''
+                        if not 'InHomeDate' in film_data or\
+                                not film_data['InHomeDate']:
+                            film_data['InHomeDate'] = ''
+                        movie = Movie(
+                            title=film_data['Title'],
+                            college_release_date=film_data['ReleaseDatePreRelease'],
+                            college_release_date_confirmed=(film_data['RightsConfirmedPreRelease'] == 'Y'),
+                            home_release_date=film_data['InHomeDate'])
 
-                # Add IMDb data to the movie
-                if self.add_imdb_data_to_movie(movie):
-                    self.save_movie_to_database(movie)
+                        # Add IMDb data to the movie
+                        if self.add_imdb_data_to_movie(movie):
+                            self.save_movie_to_database(movie)
 
-                # Add the movie to the result list
-                movie_list.append(movie)
-        except ValueError as e:
+                        # Add the movie to the result list
+                        movie_list.append(movie)
+                except:
+                    e = sys.exc_info()[0]
+                    self.stdout.write('Error parsing data for Swank movie. Error "' + str(e) + '"')
+        except:
+            e = sys.exc_info()[0]
             self.stdout.write('Error: Could not find film list on Swank due to error "' + str(e) + '"')
-            raise
 
         return movie_list
 

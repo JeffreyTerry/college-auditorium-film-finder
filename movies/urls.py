@@ -19,12 +19,10 @@ def get_movies(sc):
 
     sc.enter(28800, 1, get_movies, (sc,))
 
- 
+
 def start_getting_movies():
     scheduler = sched.scheduler(time.time, time.sleep)
     scheduler.enter(1, 1, get_movies, (scheduler,))
     scheduler.run()
- 
-thread.start_new_thread(start_getting_movies, ())
 
-print 'hello'
+thread.start_new_thread(start_getting_movies, ())

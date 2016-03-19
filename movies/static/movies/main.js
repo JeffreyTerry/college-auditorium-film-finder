@@ -27,6 +27,14 @@ function titleColumnFormatter(value, row, index) {
     return '<a href="' + row['imdb_url'] + '" target="_blank" title="' + row['plot'] + '">' + value + '</a>';
 }
 
+function collegeReleaseColumnFormatter(value, row, index) {
+    var suffix = '';
+    if (!row['college_release_date_confirmed']) {
+        suffix = ' <span title="Tentative">(T)</span>';
+    }
+    return value + suffix;
+}
+
 function dateSorter(first, second) {
     if (first && !second) {
         return -1;
