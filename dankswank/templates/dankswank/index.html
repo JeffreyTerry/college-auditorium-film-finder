@@ -20,7 +20,9 @@
     <thead>
         <tr>
         {% for key, attr in movie_attributes %}
-            {% if key == 'college_release_date' or key == 'home_release_date' %}
+            {% if key == 'college_release_date' %}
+            <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter" data-formatter="collegeReleaseColumnFormatter">
+            {% elif key == 'home_release_date' %}
             <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter">
             {% elif key == 'gross' %}
             <th data-field="{{ key }}" data-sortable="true" data-sorter="grossSorter">

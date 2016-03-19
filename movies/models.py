@@ -7,6 +7,7 @@ import re
 class Movie(models.Model):
     title = models.CharField(max_length=200)
     college_release_date = models.CharField(default='', max_length=200)
+    college_release_date_confirmed = models.BooleanField(default=False)
     home_release_date = models.CharField(default='', max_length=200)
     user_rating = models.FloatField('IMDb User Rating', blank=True)
     imdb_votes = models.IntegerField('Number of Votes on IMDb', blank=True)
