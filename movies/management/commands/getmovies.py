@@ -65,7 +65,7 @@ class Command(BaseCommand):
 
             # Parse the data from the soup
             movie_list = []
-            for row in data_rows[1:5]:
+            for row in data_rows[1:]:
                 try:
                     # Parse data from the current row
                     values = [self.get_content_from_tag(col) for col in row if isinstance(col, Tag)]
