@@ -243,6 +243,7 @@ class Command(BaseCommand):
                     attr = match.group(0)
             setattr(movie, movie_attr, attr)
         except (KeyError, IndexError):
+            logger.warning('Could not parse "' + movie_attr + '" from IMDb for "' + movie.title + '"')
             if movie_attr == 'user_rating' or\
                     movie_attr == 'critic_rating' or\
                     movie_attr == 'imdb_votes':
