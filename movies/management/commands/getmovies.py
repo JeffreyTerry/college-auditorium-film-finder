@@ -8,11 +8,15 @@ from bs4 import BeautifulSoup, Tag
 from imdb import IMDb
 from movies.models import Movie
 from arrow.parser import ParserError
+import logging
 import arrow
 import requests
 import json
 import re
 import sys
+
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -34,9 +38,9 @@ class Command(BaseCommand):
 
     def populate_movie_database(self, overwrite_existing_movies=False):
         movies = self.parse_movies_from_criterion(overwrite_existing_movies)
-        self.stdout.write('Done parsing data from Criterion')
+        logger.info('Done parsing data from Criterion')
         movies = self.parse_movies_from_swank(overwrite_existing_movies)
-        self.stdout.write('Done parsing data from Swank')
+        logger.info('Done parsing data from Swank')
 
     def parse_movies_from_criterion(self, overwrite_existing_movies):
         content = requests.get('http://www.criterionpicusa.com/release-schedule').text
@@ -48,7 +52,7 @@ class Command(BaseCommand):
             table_element_end_index = content.index('</table', table_header_row_index)
             table_element_end_index = content.index('>', table_element_end_index) + 1
             table_content = content[table_element_start_index:table_element_end_index]
-            # print table_content
+            # logger.debug(table_content)
 
             # Pull the table into BeautifulSoup
             soup = BeautifulSoup(table_content, 'html.parser')
@@ -88,7 +92,7 @@ class Command(BaseCommand):
                     if not overwrite_existing_movies and Movie.objects.filter(title=dirty_movie['Title']):
                         continue
                     else:
-                        self.stdout.write('Finding movie data for "' + dirty_movie['Title'] + '"')
+                        logger.info('Finding movie data for "' + dirty_movie['Title'] + '"')
 
                         # Add IMDb data to the movie
                         if self.add_imdb_data_to_movie(movie):
@@ -98,10 +102,10 @@ class Command(BaseCommand):
                         movie_list.append(movie)
                 except:
                     e = sys.exc_info()[0]
-                    self.stdout.write('Error parsing data for Criterion movie. Error "' + str(e) + '"')
+                    logger.error('Error parsing data for Criterion movie. Error "' + str(e) + '"')
         except:
             e = sys.exc_info()[0]
-            self.stdout.write('Error: Could not find film list on Criterion due to error "' + str(e) + '"')
+            logger.error('Error: Could not find film list on Criterion due to error "' + str(e) + '"')
 
         return movie_list
 
@@ -130,7 +134,7 @@ class Command(BaseCommand):
                     if not overwrite_existing_movies and Movie.objects.filter(title=film_data['Title']):
                         continue
                     else:
-                        self.stdout.write('Finding movie data for "' + film_data['Title'] + '"')
+                        logger.info('Finding movie data for "' + film_data['Title'] + '"')
 
                         # Build the movie object
                         if not 'ReleaseDatePreRelease' in film_data or\
@@ -153,10 +157,10 @@ class Command(BaseCommand):
                         movie_list.append(movie)
                 except:
                     e = sys.exc_info()[0]
-                    self.stdout.write('Error parsing data for Swank movie. Error "' + str(e) + '"')
+                    logger.error('Error parsing data for Swank movie. Error "' + str(e) + '"')
         except:
             e = sys.exc_info()[0]
-            self.stdout.write('Error: Could not find film list on Swank due to error "' + str(e) + '"')
+            logger.error('Error: Could not find film list on Swank due to error "' + str(e) + '"')
 
         return movie_list
 
@@ -195,7 +199,7 @@ class Command(BaseCommand):
                 imdb_data = data
 
         if not imdb_data:
-            self.stdout.write('Error: Could not find IMDb data for movie: %s' % movie)
+            logger.error('Error: Could not find IMDb data for movie: %s' % movie)
             nothing = {}
             self.add_imdb_attr_to_movie(movie, 'genres', nothing, 'genres')
             self.add_imdb_attr_to_movie(movie, 'user_rating', nothing, 'rating')
@@ -249,4 +253,5 @@ class Command(BaseCommand):
     def save_movie_to_database(self, movie):
         if Movie.objects.filter(title=movie.title):
             Movie.objects.filter(title=movie.title)[0].delete()
+        logger.info('Saving movie data for "' + movie.title + '"')
         movie.save()

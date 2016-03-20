@@ -2,7 +2,9 @@
 from django.db import models
 from jsonfield import JSONField
 import re
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Movie(models.Model):
     title = models.CharField(max_length=200)
@@ -58,7 +60,7 @@ class Movie(models.Model):
             if int(self.critic_rating) > 60:
                 points += 1
         except (TypeError, ValueError):
-            print 'Could not parse integer value from metascore data "' + str(self.critic_rating) + '"'
+            logger.error('Could not parse integer value from metascore data "' + str(self.critic_rating) + '"')
         try:
             if self.gross:
                 numerical_gross = re.sub(ur'[\$€,]', '', self.gross)
@@ -66,7 +68,7 @@ class Movie(models.Model):
                 if numerical_gross > 100000000:
                     points += 1
         except (TypeError, ValueError):
-            print 'Could not parse integer value from gross data "' + str(numerical_gross) + '"'
+            logger.error('Could not parse integer value from gross data "' + str(numerical_gross) + '"')
 
         return points
 

@@ -4,6 +4,7 @@ from rest_framework.routers import SimpleRouter
 from movies.management.commands.getmovies import Command as MovieCollectorCommand
 from movies.management.commands.prunemovies import Command as MoviePrunerCommand
 import sched, time, thread
+import logging
 
 
 router = SimpleRouter()
@@ -13,8 +14,12 @@ urlpatterns = [
     url(r'', include(router.urls)),
 ]
 
+logger = logging.getLogger(__name__)
 
 def get_movies(sc):
+    logger.info('---------------------------')
+    logger.info(' Getting movie information ')
+    logger.info('---------------------------')
     mcc = MovieCollectorCommand()
     mcc.populate_movie_database(True)
 
