@@ -22,6 +22,5 @@ class Command(BaseCommand):
         old_movies = filter(lambda movie:
             arrow.get(movie.college_release_date, 'M/D/YYYY') < cutoff_date, movies)
         for movie in old_movies:
-            print movie
             movie.delete()
 
