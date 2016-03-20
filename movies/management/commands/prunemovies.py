@@ -18,7 +18,7 @@ class Command(BaseCommand):
 
     def prune_movie_database(self):
         movies = Movie.objects.all()
-        cutoff_date = arrow.now().replace(weeks=-8)
+        cutoff_date = arrow.now().replace(weeks=-16)
         old_movies = filter(lambda movie:
             arrow.get(movie.college_release_date, 'M/D/YYYY') < cutoff_date, movies)
         for movie in old_movies:
