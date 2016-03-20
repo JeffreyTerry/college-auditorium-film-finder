@@ -37,10 +37,12 @@ class Command(BaseCommand):
             self.populate_movie_database()
 
     def populate_movie_database(self, overwrite_existing_movies=False):
-        movies = self.parse_movies_from_criterion(overwrite_existing_movies)
+        criterion_movies = self.parse_movies_from_criterion(overwrite_existing_movies)
         logger.info('Done parsing data from Criterion')
-        movies = self.parse_movies_from_swank(overwrite_existing_movies)
+        swank_movies = self.parse_movies_from_swank(overwrite_existing_movies)
         logger.info('Done parsing data from Swank')
+        self.prune_movie_database(criterion_movies + swank_movies)
+        logger.info('Done pruning movies from the database')
 
     def parse_movies_from_criterion(self, overwrite_existing_movies):
         content = requests.get('http://www.criterionpicusa.com/release-schedule').text
@@ -63,7 +65,7 @@ class Command(BaseCommand):
 
             # Parse the data from the soup
             movie_list = []
-            for row in data_rows[1:]:
+            for row in data_rows[1:5]:
                 try:
                     # Parse data from the current row
                     values = [self.get_content_from_tag(col) for col in row if isinstance(col, Tag)]
@@ -103,9 +105,11 @@ class Command(BaseCommand):
                 except:
                     e = sys.exc_info()[0]
                     logger.error('Error parsing data for Criterion movie. Error "' + str(e) + '"')
+                    # raise
         except:
             e = sys.exc_info()[0]
             logger.error('Error: Could not find film list on Criterion due to error "' + str(e) + '"')
+            # raise
 
         return movie_list
 
@@ -165,11 +169,15 @@ class Command(BaseCommand):
         return movie_list
 
     def get_content_from_tag(self, tag):
-        while tag.find(True, class_='field'):
-            tag = tag.find(True, class_='field')
-        while tag.find('a'):
-            tag = tag.find('a')
-        return tag.contents[0]
+        try:
+            while tag.find(True, class_='field'):
+                tag = tag.find(True, class_='field')
+            while tag.find('a'):
+                tag = tag.find('a')
+            return tag.contents[0]
+        except:
+            logger.warning('Could not parse something')
+            return 'Parse Error'
 
     def get_film_list_from_script(self, content, film_listing_controls_index):
         sliced_content = content[film_listing_controls_index:]
@@ -255,4 +263,13 @@ class Command(BaseCommand):
         if Movie.objects.filter(title=movie.title):
             Movie.objects.filter(title=movie.title)[0].delete()
         logger.info('Saving movie data for "' + movie.title + '"')
+        # logger.info('Data: ' + movie.print_data())
         movie.save()
+
+    def prune_movie_database(self, movies):
+        movie_titles = map(lambda x: x.title, movies)
+        movies_in_database = Movie.objects.all()
+        movies_to_delete = filter(lambda x: x.title not in movie_titles, movies_in_database)
+        for movie in movies_to_delete:
+            logger.info('Deleting "' + movie.title + '" from the database')
+            movie.delete()
