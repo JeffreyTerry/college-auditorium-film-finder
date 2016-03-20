@@ -33,10 +33,10 @@ class Command(BaseCommand):
             self.populate_movie_database()
 
     def populate_movie_database(self, overwrite_existing_movies=False):
-        movies = self.parse_movies_from_swank(overwrite_existing_movies)
-        self.stdout.write('Done parsing data from Swank')
         movies = self.parse_movies_from_criterion(overwrite_existing_movies)
         self.stdout.write('Done parsing data from Criterion')
+        movies = self.parse_movies_from_swank(overwrite_existing_movies)
+        self.stdout.write('Done parsing data from Swank')
 
     def parse_movies_from_criterion(self, overwrite_existing_movies):
         content = requests.get('http://www.criterionpicusa.com/release-schedule').text
