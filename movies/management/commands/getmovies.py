@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.core.management.base import BaseCommand
+from django.utils.html import escape as html_encode
 from datetime import datetime
 # from lxml import etree
 # from io import StringIO
@@ -85,6 +86,8 @@ class Command(BaseCommand):
 
                     # Build the movie object
                     dirty_movie = dict(zip(headers, values))
+                    if not dirty_movie['Home Video Release Date']:
+                        dirty_movie['Home Video Release Date'] = self.get_home_release_date(dirty_movie['Title'])
                     movie = Movie(
                         title=dirty_movie['Title'],
                         college_release_date=dirty_movie['Criterion Date'],
@@ -146,7 +149,8 @@ class Command(BaseCommand):
                             film_data['ReleaseDatePreRelease'] = ''
                         if not 'InHomeDate' in film_data or\
                                 not film_data['InHomeDate']:
-                            film_data['InHomeDate'] = ''
+                            film_data['InHomeDate'] = self.get_home_release_date(film_data['Title'])
+
                         movie = Movie(
                             title=film_data['Title'],
                             college_release_date=film_data['ReleaseDatePreRelease'],
@@ -258,6 +262,40 @@ class Command(BaseCommand):
                 setattr(movie, movie_attr, 0)
             else:
                 setattr(movie, movie_attr, '')
+
+    def get_home_release_date(self, movie_title):
+        # Get release date page content
+        try:
+            link_to_info_page = requests.get('http://www.dvdsreleasedates.com/livesearch.php?q=' + html_encode(movie_title)).text
+            if not 'a href' in link_to_info_page:
+                return ''
+            link_to_info_page = link_to_info_page[link_to_info_page.find('/movies'):]
+            name_of_movie = link_to_info_page[link_to_info_page.find('>') + 1:]
+            # Check that the beginning of the name is in a <span tag. If it's not, then this is probably a partial match, and it's probably not the right movie.
+            if name_of_movie[0] != '<':
+                return ''
+            link_to_info_page = link_to_info_page[:link_to_info_page.find('\'>')]
+            info_page = requests.get('http://www.dvdsreleasedates.com' + link_to_info_page).text
+        except:
+            e = sys.exc_info()[0]
+            logger.warning('Error: Could not parse home release date for "' + movie_title + '". Error: "' + str(e) + '"')
+
+        # Find the release date
+        try:
+            index_of_set_for_string = info_page.find('is set for')
+            if index_of_set_for_string == -1:
+                return ''
+            info_page = info_page[index_of_set_for_string + 10:]
+            release_date = info_page[:info_page.find('<')]
+            date = arrow.get(release_date, 'MMMM D, YYYY')
+            date = date.format('M/D/YYYY')
+            return date
+        except arrow.parser.ParserError:
+            return ''
+        except:
+            e = sys.exc_info()[0]
+            logger.warning('Error: Could not parse home release date for "' + movie_title + '". Error: "' + str(e) + '"')
+        return ''
 
     def save_movie_to_database(self, movie):
         if Movie.objects.filter(title=movie.title):
