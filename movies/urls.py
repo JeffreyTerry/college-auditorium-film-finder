@@ -5,6 +5,7 @@ from movies.management.commands.getmovies import Command as MovieCollectorComman
 from movies.management.commands.prunemovies import Command as MoviePrunerCommand
 import sched, time, thread
 import logging
+import os
 
 
 router = SimpleRouter()
@@ -16,10 +17,19 @@ urlpatterns = [
 
 logger = logging.getLogger(__name__)
 
+
 def get_movies(sc):
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    logfile = os.path.join(BASE_DIR, 'debug.log')
+
+    # Empty the log file
+    with open(logfile, 'w') as f:
+        f.write('')
+
     logger.info('---------------------------')
     logger.info(' Getting movie information ')
     logger.info('---------------------------')
+
     mcc = MovieCollectorCommand()
     mcc.populate_movie_database(True)
 
