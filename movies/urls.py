@@ -3,6 +3,7 @@ from . import views
 from rest_framework.routers import SimpleRouter
 from movies.management.commands.getmovies import Command as MovieCollectorCommand
 from movies.management.commands.prunemovies import Command as MoviePrunerCommand
+from dankswank.models import Dankswank
 import sched, time, thread
 import logging
 import os

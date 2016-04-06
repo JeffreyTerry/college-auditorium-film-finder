@@ -9,8 +9,16 @@
 {% endblock %}
 
 {% block content %}
-<table id="table"
+<div class="left">
+    <img id="main-logo" src="{% static "dankswank/imgs/dankswank_logo.png" %}" height=80>
+</div>
+<div id="update-box" class="right">
+    Current as of {{ last_update }}
+</div>
+<table
+       id="table"
        class="cursor-default"
+       class="clear"
        data-toggle="table"
        data-minimum-count-columns="2"
        data-url="{% url "movie-list" %}"
@@ -37,21 +45,4 @@
         </tr>
     </thead>
 </table>
-<!-- <table id="table"
-       data-toolbar="#toolbar"
-       data-search="true"
-       data-show-refresh="true"
-       data-show-toggle="true"
-       data-show-columns="true"
-       data-detail-view="true"
-       data-detail-formatter="detailFormatter"
-       data-minimum-count-columns="2"
-       data-show-pagination-switch="true"
-       data-pagination="true"
-       data-page-list="[10, 25, 50, 100, ALL]"
-       data-show-footer="true"
-       data-side-pagination="server"
-       data-url="{% url "movie-list" %}"
-       data-response-handler="responseHandler">
-</table> -->
 {% endblock %}
