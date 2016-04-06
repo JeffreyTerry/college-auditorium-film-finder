@@ -8,6 +8,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup, Tag
 from imdb import IMDb
 from movies.models import Movie
+from dankswank.models import Dankswank
 from arrow.parser import ParserError
 import logging
 import arrow
@@ -38,6 +39,7 @@ class Command(BaseCommand):
             self.populate_movie_database()
 
     def populate_movie_database(self, overwrite_existing_movies=False):
+        Dankswank.set_last_update()
         criterion_movies = self.parse_movies_from_criterion(overwrite_existing_movies)
         logger.info('Done parsing data from Criterion')
         swank_movies = self.parse_movies_from_swank(overwrite_existing_movies)

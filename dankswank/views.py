@@ -1,5 +1,6 @@
 from django.views import generic
 from movies.models import Movie
+from dankswank.models import Dankswank
 
 
 class IndexView(generic.ListView):
@@ -11,7 +12,8 @@ class IndexView(generic.ListView):
         context.update({
             'movie_attributes': zip(Movie.get_movie_attribute_keys(), Movie.get_movie_attribute_names()),
             'movie_attribute_names': Movie.get_movie_attribute_names(),
-            'movie_attribute_keys': Movie.get_movie_attribute_keys()
+            'movie_attribute_keys': Movie.get_movie_attribute_keys(),
+            'last_update': Dankswank.get_last_update()
         })
         return context
 
