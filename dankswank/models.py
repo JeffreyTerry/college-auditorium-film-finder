@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.db import models
-from django.utils import timezone
 from jsonfield import JSONField
+from datetime import datetime
+import pytz
 import re
 import logging
 
@@ -17,13 +18,14 @@ class Dankswank(models.Model):
         if dankswank:
             return dankswank[0].last_update
         else:
-            return "Error: no updates available"
+            return "never"
 
     @staticmethod
     def set_last_update():
         dankswank = Dankswank.objects.all()
+        now = datetime.utcnow().replace(tzinfo=pytz.utc)
         if dankswank:
-            dankswank[0].last_update = timezone.now()
+            dankswank[0].last_update = now
             dankswank[0].save()
         else:
-            Dankswank(last_update=timezone.now()).save()
+            Dankswank(last_update=now).save()
