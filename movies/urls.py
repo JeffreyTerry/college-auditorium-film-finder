@@ -37,6 +37,8 @@ def get_movies(sc):
     mpc = MoviePrunerCommand()
     mpc.prune_movie_database()
 
+    Dankswank.set_last_update()
+        
     sc.enter(28800, 1, get_movies, (sc,))
 
 

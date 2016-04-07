@@ -12,8 +12,14 @@
 <div class="left">
     <img id="main-logo" src="{% static "dankswank/imgs/dankswank_logo.png" %}" height=80>
 </div>
-<div id="update-box" class="right">
-    Current as of {{ last_update }}
+<div id="update-box" class="right cursor-default">
+    {% if last_update == 0 %}
+    Updated less than an hour ago
+    {% elif last_update == 1 %}
+    Updated {{ last_update }} hour ago
+    {% else %}
+    Updated {{ last_update }} hours ago
+    {% endif %}
 </div>
 <table
        id="table"
