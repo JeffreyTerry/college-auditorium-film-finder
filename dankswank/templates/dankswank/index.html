@@ -21,34 +21,36 @@
     Updated {{ last_update }} hours ago
     {% endif %}
 </div>
-<table
-       id="table"
-       class="cursor-default"
-       class="clear"
-       data-toggle="table"
-       data-minimum-count-columns="2"
-       data-url="{% url "movie-list" %}"
-       data-row-style="rowStyle"
-       data-sort-name="college_release_date"
-       data-sort-order="asc">
-    <thead>
-        <tr>
-        {% for key, attr in movie_attributes %}
-            {% if key == 'college_release_date' %}
-            <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter" data-formatter="collegeReleaseColumnFormatter">
-            {% elif key == 'home_release_date' %}
-            <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter">
-            {% elif key == 'gross' %}
-            <th data-field="{{ key }}" data-sortable="true" data-sorter="grossSorter">
-            {% elif key == 'title' %}
-            <th data-field="{{ key }}" data-sortable="true" data-formatter="titleColumnFormatter">
-            {% else %}
-            <th data-field="{{ key }}" data-sortable="true">
-            {% endif %}
-                {{ attr }}
-            </th>
-        {% endfor %}
-        </tr>
-    </thead>
-</table>
+<div id="main-table-wrapper">
+    <table
+           id="table"
+           class="cursor-default"
+           class="clear"
+           data-toggle="table"
+           data-minimum-count-columns="2"
+           data-url="{% url "movie-list" %}"
+           data-row-style="rowStyle"
+           data-sort-name="college_release_date"
+           data-sort-order="asc">
+        <thead>
+            <tr>
+            {% for key, attr in movie_attributes %}
+                {% if key == 'college_release_date' %}
+                <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter" data-formatter="collegeReleaseColumnFormatter">
+                {% elif key == 'home_release_date' %}
+                <th data-field="{{ key }}" data-sortable="true" data-sorter="dateSorter">
+                {% elif key == 'gross' %}
+                <th data-field="{{ key }}" data-sortable="true" data-sorter="grossSorter">
+                {% elif key == 'title' %}
+                <th data-field="{{ key }}" data-sortable="true" data-formatter="titleColumnFormatter">
+                {% else %}
+                <th data-field="{{ key }}" data-sortable="true">
+                {% endif %}
+                    {{ attr }}
+                </th>
+            {% endfor %}
+            </tr>
+        </thead>
+    </table>
+</div>
 {% endblock %}

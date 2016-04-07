@@ -20,3 +20,11 @@
     margin-top: 26px;
     margin-right: 20px;
 }
+
+#main-table-wrapper {
+    position: fixed;
+    top: 80px;
+    bottom: 0px;
+    left: 15px;
+    right: 15px;
+}
